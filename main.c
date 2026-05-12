@@ -133,26 +133,36 @@ void resolver_fase_itens_inteiros(Item itens_disponiveis[], int n, float peso_ma
     }
 }
 
-// Interpretei que é necessário levar o item inteiro nesse caso (Templo Subterrâneo)
-// int selecionados[] deve inicializar seus elementos com -1.
+// Templo Subterrâneo: seleciona os 3 itens com maior benefício (valor/peso)
+// que caibam na mochila, em uma única passagem O(n).
+// selecionados[] deve ter seus elementos inicializados com -1.
 void resolver_fase_top_3_beneficio(Item itens_disponiveis[], int n, int selecionados[3], float peso_maximo) {
-    // Encontre os 3 itens com maior benefício, caso não passem do peso máximo
-    // Salva os respectivos índices em selecionados
+    // Mantemos os índices dos 3 melhores encontrados até agora.
+    // top[0] = melhor, top[1] = segundo, top[2] = terceiro
 
-    int i = 0;
-    while (i < 3 && peso_maximo > 0.0) {
-        selecionados[i] = 0;
+    for (int i = 0; i < n; i++) {
+        // Ignora itens que não cabem na mochila
+        if (itens_disponiveis[i].pesoKg > peso_maximo) continue;
 
-        for (int j = 1; j < n; j++) {
-            if (itens_disponiveis[j].pesoKg <= peso_maximo &&
-                calcular_beneficio(itens_disponiveis[j]) > calcular_beneficio(itens_disponiveis[selecionados[i]])) {
+        float beneficio_atual = calcular_beneficio(itens_disponiveis[i]);
 
-                selecionados[i] = j;
+        // Verifica se entra no top 3 (compara do pior para o melhor)
+        for (int slot = 2; slot >= 0; slot--) {
+            if (selecionados[slot] == -1 ||
+                beneficio_atual > calcular_beneficio(itens_disponiveis[selecionados[slot]])) {
+
+                // Empurra os piores uma posição para baixo
+                if (slot < 2) selecionados[slot + 1] = selecionados[slot];
+                selecionados[slot] = i;
+                } else {
+                    break; // Já achou a posição certa, não precisa continuar
                 }
         }
+    }
 
-        peso_maximo -= itens_disponiveis[selecionados[i]].pesoKg;
-        i++;
+    // Copia resultado para o array de saída
+    for (int i = 0; i < 3; i++) {
+        selecionados[i] = selecionados[i];
     }
 }
 
