@@ -92,7 +92,7 @@ void ordenar_itens_por_beneficio(Item arr[], int esq, int dir,
 
 // Floresta Encantada e Montanhas Geladas - Itens de certos tipos têm o seu valor alterado
 void resolver_fase_com_ajuste_valor(Item itens_disponiveis[], int n, float qtde_selecionada[], float peso_maximo,
-    char* categoria_valor_alterado, float multiplicador) { // Nao sei escolher nome de funcao kkkkkkk
+    char* categoria_valor_alterado, float multiplicador) {
     ordenar_itens_por_beneficio(itens_disponiveis, 0, n-1, categoria_valor_alterado, multiplicador);
 
     int i = 0;
@@ -100,12 +100,12 @@ void resolver_fase_com_ajuste_valor(Item itens_disponiveis[], int n, float qtde_
         float peso_atual = itens_disponiveis[i].pesoKg;
 
         if (peso_atual <= peso_maximo) {
-            qtde_selecionada[i] = peso_atual; // Pega tudo, fodasse
+            qtde_selecionada[i] = peso_atual;
             peso_maximo -= peso_atual;
             i++;
         } else {
-            qtde_selecionada[i] = peso_maximo / peso_atual; // Pega o que der
-            peso_maximo = 0;
+            qtde_selecionada[i] = peso_maximo;
+            peso_maximo = 0.0;
         }
     }
 }
@@ -150,6 +150,7 @@ void resolver_fase_top_3_beneficio(Item itens_disponiveis[], int n, int selecion
                 selecionados[i] = j;
                 }
         }
+
         peso_maximo -= itens_disponiveis[selecionados[i]].pesoKg;
         i++;
     }
