@@ -133,6 +133,28 @@ void resolver_fase_itens_inteiros(Item itens_disponiveis[], int n, float peso_ma
     }
 }
 
+// Interpretei que é necessário levar o item inteiro nesse caso (Templo Subterrâneo)
+// int selecionados[] deve inicializar seus elementos com -1.
+void resolver_fase_top_3_beneficio(Item itens_disponiveis[], int n, int selecionados[3], float peso_maximo) {
+    // Encontre os 3 itens com maior benefício, caso não passem do peso máximo
+    // Salva os respectivos índices em selecionados
+
+    int i = 0;
+    while (i < 3 && peso_maximo > 0.0) {
+        selecionados[i] = 0;
+
+        for (int j = 1; j < n; j++) {
+            if (itens_disponiveis[j].pesoKg <= peso_maximo &&
+                calcular_beneficio(itens_disponiveis[j]) > calcular_beneficio(itens_disponiveis[selecionados[i]])) {
+
+                selecionados[i] = j;
+                }
+        }
+        peso_maximo -= itens_disponiveis[selecionados[i]].pesoKg;
+        i++;
+    }
+}
+
 int main(int argc, char *argv[]) {
     if (argc != 3) {
         fprintf(stderr, "Uso: %s entrada_jogo.txt saida_jogo.txt\n", argv[0]);
@@ -145,3 +167,11 @@ int main(int argc, char *argv[]) {
     return 0;
 }
 
+/*
+TODO`s:
+ - Braba cabulosa: em como o vetor é ordenado em cada fase, é importante avaliar se o uso de índices
+                   (vetor de bool ou vetor de indices) não pode causar bugs mais pra frente.
+
+ - Implementar leitura do arquivo e parser para structs do tipo Item.\
+ - Basicamente, implementar a função main inteira.
+*/
