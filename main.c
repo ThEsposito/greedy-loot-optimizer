@@ -110,6 +110,29 @@ void resolver_fase_com_ajuste_valor(Item itens_disponiveis[], int n, float qtde_
     }
 }
 
+/*
+Como mencionado em aula, não existe estratégia gulosa para obter solução ótima para o problema
+da mochila binária.
+
+Portanto, utilizei a mesma estratégia para resolver este caso, mesmo que não obtenha a melhor solução.
+*/
+void resolver_fase_itens_inteiros(Item itens_disponiveis[], int n, float peso_maximo, int selecionados[]) {
+
+    ordenar_itens_por_beneficio(itens_disponiveis, 0, n-1, NULL, 1);
+
+    int i = 0;
+    int j = 0;
+    while (i < n && peso_maximo > 0.0) {
+        if (itens_disponiveis[i].pesoKg <= peso_maximo) {
+            selecionados[j] = i; // Guarda o índice para o item selecionado
+            peso_maximo -= itens_disponiveis[i].pesoKg;
+            j++;
+        }
+        i++;
+        // Se não for possivel incluir o item inteiro, ignora e passa para o próximo
+    }
+}
+
 int main(int argc, char *argv[]) {
     if (argc != 3) {
         fprintf(stderr, "Uso: %s entrada_jogo.txt saida_jogo.txt\n", argv[0]);
