@@ -90,6 +90,26 @@ void ordenar_itens_por_beneficio(Item arr[], int esq, int dir,
     }
 }
 
+// Floresta Encantada e Montanhas Geladas - Itens de certos tipos têm o seu valor alterado
+void resolver_fase_com_ajuste_valor(Item itens_disponiveis[], int n, float qtde_selecionada[], float peso_maximo,
+    char* categoria_valor_alterado, float multiplicador) { // Nao sei escolher nome de funcao kkkkkkk
+    ordenar_itens_por_beneficio(itens_disponiveis, 0, n-1, categoria_valor_alterado, multiplicador);
+
+    int i = 0;
+    while (i < n && peso_maximo > 0.0) {
+        float peso_atual = itens_disponiveis[i].pesoKg;
+
+        if (peso_atual <= peso_maximo) {
+            qtde_selecionada[i] = peso_atual; // Pega tudo, fodasse
+            peso_maximo -= peso_atual;
+            i++;
+        } else {
+            qtde_selecionada[i] = peso_maximo / peso_atual; // Pega o que der
+            peso_maximo = 0;
+        }
+    }
+}
+
 int main(int argc, char *argv[]) {
     if (argc != 3) {
         fprintf(stderr, "Uso: %s entrada_jogo.txt saida_jogo.txt\n", argv[0]);
@@ -101,3 +121,4 @@ int main(int argc, char *argv[]) {
 
     return 0;
 }
+
