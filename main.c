@@ -12,8 +12,8 @@ typedef struct {
 } Item;
 
 typedef struct {
-    char *nome_fase; // Aparentemente ambos os "atributos" servem para a mesma coisa
-    char *regra;
+    char nome_fase[FILE_LINE_BUFFER_SIZE]; // Aparentemente ambos os "atributos" servem para a mesma coisa
+    char regra[FILE_LINE_BUFFER_SIZE];;
     float capacidade;
     int qtde_itens;
     Item *itens;
@@ -204,7 +204,7 @@ void resolver_fase(Fase *fase) {
 
     }
     else if (strcmp(fase->nome_fase, "Templo Subterrâneo") == 0) {
-        int indices_solucao[3];
+        int indices_solucao[3] = {-1, -1, -1};;
         resolver_fase_top_3_beneficio(fase->itens, fase->qtde_itens, indices_solucao, fase->capacidade);
     }
 }
@@ -218,7 +218,7 @@ int main(int argc, char *argv[]) {
     char* path_entrada = argv[1];
     char* path_saida = argv[2];
 
-    FILE* f_entrada = fopen(path_entrada, "w+");
+    FILE* f_entrada = fopen(path_entrada, "r+");
 
     if (f_entrada == NULL) {
         printf("Erro ao abrir o arquivo de entrada: %s.\n", path_entrada);
@@ -266,7 +266,7 @@ int main(int argc, char *argv[]) {
             sscanf(linha, "CAPACIDADE: %f", &capacidade);
 
         } else if (strncmp(linha, "REGRA: ", strlen("REGRA: ")) == 0) {
-            sscanf(linha, "CAPACIDADE: %f", &capacidade);
+            sscanf(linha, "CAPACIDADE: %f", regra);
 
         } else if (strncmp(linha, "ITEM: ", strlen("ITEM: ")) == 0) {
             sscanf(linha, "ITEM: {%s, %f, %f, %s}",
