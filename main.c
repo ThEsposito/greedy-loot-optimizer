@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #define FILE_LINE_BUFFER_SIZE 256
 #define ITEMS_ARR_SIZE 100 // TODO: GAMBIARRA! PENSAR EM MANEIRA MAIS ELEGANTE DEPOIS.
@@ -17,6 +18,22 @@ typedef struct {
     int qtde_itens;
     Item *itens;
 } Fase;
+
+int contar_itens_fase(FILE *f) {
+    long pos_original = ftell(f);
+    char linha[FILE_LINE_BUFFER_SIZE];
+    int count = 0;
+
+    while (fgets(linha, FILE_LINE_BUFFER_SIZE, f)) {
+        if (strncmp(linha, "FASE:", 5) == 0 && count > 0)
+            break; // Chegou na próxima fase, para
+        if (strncmp(linha, "ITEM:", 5) == 0)
+            count++;
+    }
+
+    fseek(f, pos_original, SEEK_SET); // Restaura ponteiro
+    return count;
+}
 
 float calcular_beneficio(Item item) {
     return item.valor / item.pesoKg;
@@ -220,17 +237,31 @@ int main(int argc, char *argv[]) {
     char *nome_fase;
     char *regra;
     float capacidade;
-    Item itens[ITEMS_ARR_SIZE]; // // TODO: GAMBIARRA! PENSAR EM MANEIRA MAIS ELEGANTE DEPOIS.
-    int qtde_item = 0;
+
+    Item *itens = NULL;
+    int qtde_itens_fase = 0;
+
     while (fgets(linha, FILE_LINE_BUFFER_SIZE, f_entrada)) {
-        if (strncmp(linha, "FASE: ", strlen("FASE: ")) == 0) {
-            Fase fase = {nome_fase, regra, capacidade, qtde_item, itens};
-            resolver_fase(&fase); // TODO: N sei se precisa de ponteiro mesmo
+        if (strncmp(linha, "FASE:", 5) == 0) {
 
-            // TODO: Pensar em alguma maneira de limpar o array de itens aqui
+            // Resolve a fase anterior antes de sobrescrever os dados
+            if (itens != NULL) {
+                Fase fase = {nome_fase, regra, capacidade, qtde_itens_fase, itens};
+                resolver_fase(&fase);
+                free(itens);
+                itens = NULL;
+            }
 
-            qtde_item = 0; // Nova fase.
-            sscanf(linha, "FASE: %s", nome_fase);
+            qtde_itens_fase = 0;
+            sscanf(linha, "FASE: %ms", &nome_fase); // %ms aloca a string automaticamente
+
+            qtde_itens_fase = contar_itens_fase(f_entrada);
+
+            itens = malloc(qtde_itens_fase * sizeof(Item));
+            if (itens == NULL) {
+                fprintf(stderr, "Erro de alocação de memória.\n");
+                return 1;
+            }
         } else if (strncmp(linha, "CAPACIDADE: ", strlen("CAPACIDADE: ")) == 0) {
             sscanf(linha, "CAPACIDADE: %f", &capacidade);
 
@@ -239,9 +270,16 @@ int main(int argc, char *argv[]) {
 
         } else if (strncmp(linha, "ITEM: ", strlen("ITEM: ")) == 0) {
             sscanf(linha, "ITEM: {%s, %f, %f, %s}",
-                itens[qtde_item].nome, &itens[qtde_item].pesoKg, &itens[qtde_item].valor, itens[qtde_item].categoria);
+                itens[qtde_itens_fase].nome, &itens[qtde_itens_fase].pesoKg, &itens[qtde_itens_fase].valor, itens[qtde_itens_fase].categoria);
 
-            qtde_item++;
+            qtde_itens_fase++;
+        }
+
+        // Não esquecer de resolver a última fase após o loop
+        if (itens != NULL) {
+            Fase fase = {nome_fase, regra, capacidade, qtde_itens_fase, itens};
+            resolver_fase(&fase);
+            free(itens);
         }
     }
 
