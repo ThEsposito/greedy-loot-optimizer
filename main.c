@@ -12,11 +12,11 @@ typedef struct {
 } Item;
 
 typedef struct {
-    char nome_fase[FILE_LINE_BUFFER_SIZE]; // Aparentemente ambos os "atributos" servem para a mesma coisa
+    char *nome_fase; // Aparentemente ambos os "atributos" servem para a mesma coisa
     char regra[FILE_LINE_BUFFER_SIZE];;
     float capacidade;
     int qtde_itens;
-    Item *itens;
+    Item itens[];
 } Fase;
 
 int contar_itens_fase(FILE *f) {
@@ -187,25 +187,32 @@ void resolver_fase_top_3_beneficio(Item itens_disponiveis[], int n, int selecion
         }
     }
 }
+/*
 
-void resolver_fase(Fase *fase) {
-    if (strcmp(fase->nome_fase, "Floresta Encantada") == 0) {
-        float solucao[fase->qtde_itens];
-        resolver_fase_com_ajuste_valor(fase->itens, fase->qtde_itens, solucao, fase->capacidade, "magico", 2.0f);
+    char *nome_fase; // Aparentemente ambos os "atributos" servem para a mesma coisa
+    char regra[FILE_LINE_BUFFER_SIZE];;
+    float capacidade;
+    int qtde_itens;
+    Item itens[];
+*/
+void resolver_fase(char nome_fase[], char regra[], float capacidade, int qtde_itens, Item itens[]) {
+    if (strcmp(nome_fase, "Floresta Encantada") == 0) {
+        float solucao[qtde_itens];
+        resolver_fase_com_ajuste_valor(itens, qtde_itens, solucao, capacidade, "magico", 2.0f);
 
-    } else if (strcmp(fase->nome_fase, "Ruínas Perdidas") == 0) {
-        int solucao[fase->qtde_itens];
+    } else if (strcmp(nome_fase, "Ruínas Perdidas") == 0) {
+        int solucao[qtde_itens];
 
-        resolver_fase_itens_inteiros(fase->itens, fase->qtde_itens, fase->capacidade, solucao);
+        resolver_fase_itens_inteiros(itens, qtde_itens, capacidade, solucao);
 
-    } else if (strcmp(fase->nome_fase, "Montanhas Geladas") == 0) {
-        float solucao[fase->qtde_itens];
-        resolver_fase_com_ajuste_valor(fase->itens, fase->qtde_itens, solucao, fase->capacidade, "sobrevivencia", 0.8f);
+    } else if (strcmp(nome_fase, "Montanhas Geladas") == 0) {
+        float solucao[qtde_itens];
+        resolver_fase_com_ajuste_valor(itens, qtde_itens, solucao, capacidade, "sobrevivencia", 0.8f);
 
     }
-    else if (strcmp(fase->nome_fase, "Templo Subterrâneo") == 0) {
+    else if (strcmp(nome_fase, "Templo Subterrâneo") == 0) {
         int indices_solucao[3] = {-1, -1, -1};;
-        resolver_fase_top_3_beneficio(fase->itens, fase->qtde_itens, indices_solucao, fase->capacidade);
+        resolver_fase_top_3_beneficio(itens, qtde_itens, indices_solucao, capacidade);
     }
 }
 
@@ -246,8 +253,9 @@ int main(int argc, char *argv[]) {
 
             // Resolve a fase anterior antes de sobrescrever os dados
             if (itens != NULL) {
-                Fase fase = {nome_fase, regra, capacidade, qtde_itens_fase, itens};
-                resolver_fase(&fase);
+                // Fase fase = {nome_fase, regra, capacidade, qtde_itens_fase, itens};
+                // resolver_fase(&fase);
+                resolver_fase(nome_fase, regra, capacidade, qtde_itens_fase, itens);
                 free(itens);
                 itens = NULL;
             }
@@ -266,10 +274,10 @@ int main(int argc, char *argv[]) {
             sscanf(linha, "CAPACIDADE: %f", &capacidade);
 
         } else if (strncmp(linha, "REGRA: ", strlen("REGRA: ")) == 0) {
-            sscanf(linha, "CAPACIDADE: %f", regra);
+            sscanf(linha, "REGRA: %ms", &regra);
 
         } else if (strncmp(linha, "ITEM: ", strlen("ITEM: ")) == 0) {
-            sscanf(linha, "ITEM: {%s, %f, %f, %s}",
+            sscanf(linha, "ITEM: %[^,], %f, %f, %[^\n]",
                 itens[qtde_itens_fase].nome, &itens[qtde_itens_fase].pesoKg, &itens[qtde_itens_fase].valor, itens[qtde_itens_fase].categoria);
 
             qtde_itens_fase++;
@@ -277,8 +285,8 @@ int main(int argc, char *argv[]) {
 
         // Não esquecer de resolver a última fase após o loop
         if (itens != NULL) {
-            Fase fase = {nome_fase, regra, capacidade, qtde_itens_fase, itens};
-            resolver_fase(&fase);
+            // Fase fase = {nome_fase, regra, capacidade, qtde_itens_fase, itens};
+            resolver_fase(nome_fase, regra, capacidade, qtde_itens_fase, itens);
             free(itens);
         }
     }
