@@ -199,6 +199,7 @@ void resolver_fase(char nome_fase[], char regra[], float capacidade, int qtde_it
     if (strcmp(nome_fase, "Floresta Encantada") == 0) {
         float solucao[qtde_itens];
         resolver_fase_com_ajuste_valor(itens, qtde_itens, solucao, capacidade, "magico", 2.0f);
+        
 
     } else if (strcmp(nome_fase, "Ruínas Perdidas") == 0) {
         int solucao[qtde_itens];
