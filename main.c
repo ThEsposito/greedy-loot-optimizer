@@ -19,25 +19,10 @@ typedef struct {
     Item itens[];
 } Fase;
 
-int contar_itens_fase(FILE *f) {
-    long pos_original = ftell(f);
-    char linha[FILE_LINE_BUFFER_SIZE];
-    int count = 0;
-
-    while (fgets(linha, FILE_LINE_BUFFER_SIZE, f)) {
-        if (strncmp(linha, "FASE:", 5) == 0 && count > 0)
-            break; // Chegou na próxima fase, para
-        if (strncmp(linha, "ITEM:", 5) == 0)
-            count++;
-    }
-
-    fseek(f, pos_original, SEEK_SET); // Restaura ponteiro
-    return count;
-}
-
 float calcular_beneficio(Item item) {
     return item.valor / item.pesoKg;
 }
+
 // Intercala dois subarrays de arr[].
 // Subarray esquerdo é arr[esq..meio]
 // Subarray direito é arr[meio..dir]
@@ -113,7 +98,7 @@ void ordenar_itens_por_beneficio(Item arr[], int esq, int dir,
         ordenar_itens_por_beneficio(arr, meio + 1, dir, categoria_valor_alterado, modificador_valor);
 
         // Merge the sorted halves
-        merge(arr, esq, meio, dir,categoria_valor_alterado, modificador_valor);
+        merge(arr, esq, meio, dir, categoria_valor_alterado, modificador_valor);
     }
 }
 
@@ -181,43 +166,93 @@ void resolver_fase_top_3_beneficio(Item itens_disponiveis[], int n, int selecion
                 // Empurra os piores uma posição para baixo
                 if (slot < 2) selecionados[slot + 1] = selecionados[slot];
                 selecionados[slot] = i;
-                } else {
-                    break; // Já achou a posição certa, não precisa continuar
-                }
+            } else {
+                break; // Já achou a posição certa, não precisa continuar
+            }
         }
     }
 }
-/*
 
-    char *nome_fase; // Aparentemente ambos os "atributos" servem para a mesma coisa
-    char regra[FILE_LINE_BUFFER_SIZE];;
-    float capacidade;
-    int qtde_itens;
-    Item itens[];
-*/
-void resolver_fase(char nome_fase[], char regra[], float capacidade, int qtde_itens, Item itens[]) {
+void resolver_fase(char nome_fase[], char regra[], float capacidade, int qtde_itens, Item itens[], FILE *f_saida) {
+    fprintf(f_saida, "--- FASE: %s ---\n", nome_fase);
+    fprintf(f_saida, "Capacidade da mochila: %.2f kg\n", capacidade);
+
+    float lucro_fase = 0.0;
+
     if (strcmp(nome_fase, "Floresta Encantada") == 0) {
-        float solucao[qtde_itens];
-        resolver_fase_com_ajuste_valor(itens, qtde_itens, solucao, capacidade, "magico", 2.0f);
-        
+        fprintf(f_saida, "Regra aplicada: Itens magicos com valor dobrado\n");
 
-    } else if (strcmp(nome_fase, "Ruínas Perdidas") == 0) {
+        float solucao[qtde_itens];
+        for (int i = 0; i < qtde_itens; i++) solucao[i] = 0.0f;
+
+        resolver_fase_com_ajuste_valor(itens, qtde_itens, solucao, capacidade, "magico", 2.0f);
+
+        for (int i = 0; i < qtde_itens; i++) {
+            if (solucao[i] <= 0.0f) continue;
+            float valor_real = itens[i].valor;
+            if (strcmp(itens[i].categoria, "magico") == 0) valor_real *= 2.0f;
+            float valor_pago = valor_real * (solucao[i] / itens[i].pesoKg);
+            lucro_fase += valor_pago;
+            if (solucao[i] >= itens[i].pesoKg)
+                fprintf(f_saida, "Pegou (inteiro) %s (%.2fkg, R$ %.2f)\n", itens[i].nome, solucao[i], valor_real);
+            else
+                fprintf(f_saida, "Pegou (fracionado) %s (%.2fkg, R$ %.2f)\n", itens[i].nome, solucao[i], valor_pago);
+        }
+
+    } else if (strcmp(nome_fase, "Ruinas Perdidas") == 0) {
+        fprintf(f_saida, "Regra aplicada: Itens tecnologicos nao podem ser fracionados\n");
+
         int solucao[qtde_itens];
+        for (int i = 0; i < qtde_itens; i++) solucao[i] = -1;
 
         resolver_fase_itens_inteiros(itens, qtde_itens, capacidade, solucao);
 
+        for (int i = 0; i < qtde_itens; i++) {
+            if (solucao[i] == -1) break;
+            int idx = solucao[i];
+            lucro_fase += itens[idx].valor;
+            fprintf(f_saida, "Pegou (inteiro) %s (%.2fkg, R$ %.2f)\n", itens[idx].nome, itens[idx].pesoKg, itens[idx].valor);
+        }
+
     } else if (strcmp(nome_fase, "Montanhas Geladas") == 0) {
+        fprintf(f_saida, "Regra aplicada: Itens de sobrevivencia perdem 20%% do valor\n");
+
         float solucao[qtde_itens];
+        for (int i = 0; i < qtde_itens; i++) solucao[i] = 0.0f;
+
         resolver_fase_com_ajuste_valor(itens, qtde_itens, solucao, capacidade, "sobrevivencia", 0.8f);
 
-    }
-    else if (strcmp(nome_fase, "Templo Subterrâneo") == 0) {
-        int indices_solucao[3] = {-1, -1, -1};;
+        for (int i = 0; i < qtde_itens; i++) {
+            if (solucao[i] <= 0.0f) continue;
+            float valor_real = itens[i].valor;
+            if (strcmp(itens[i].categoria, "sobrevivencia") == 0) valor_real *= 0.8f;
+            float valor_pago = valor_real * (solucao[i] / itens[i].pesoKg);
+            lucro_fase += valor_pago;
+            if (solucao[i] >= itens[i].pesoKg)
+                fprintf(f_saida, "Pegou (inteiro) %s (%.2fkg, R$ %.2f)\n", itens[i].nome, solucao[i], valor_real);
+            else
+                fprintf(f_saida, "Pegou (fracionado) %s (%.2fkg, R$ %.2f)\n", itens[i].nome, solucao[i], valor_pago);
+        }
+
+    } else if (strcmp(nome_fase, "Templo Subterraneo") == 0) {
+        fprintf(f_saida, "Regra aplicada: Apenas os tres itens com maior valor/peso podem ser escolhidos\n");
+
+        int indices_solucao[3] = {-1, -1, -1};
         resolver_fase_top_3_beneficio(itens, qtde_itens, indices_solucao, capacidade);
+
+        for (int i = 0; i < 3; i++) {
+            if (indices_solucao[i] == -1) break;
+            int idx = indices_solucao[i];
+            lucro_fase += itens[idx].valor;
+            fprintf(f_saida, "Pegou (inteiro) %s (%.2fkg, R$ %.2f)\n", itens[idx].nome, itens[idx].pesoKg, itens[idx].valor);
+        }
     }
+
+    fprintf(f_saida, "Lucro da fase: R$ %.2f\n\n", lucro_fase);
 }
 
 int main(int argc, char *argv[]) {
+    // Valida os argumentos de linha de comando
     if (argc != 3) {
         fprintf(stderr, "Uso: %s entrada_jogo.txt saida_jogo.txt\n", argv[0]);
         return 1;
@@ -226,81 +261,90 @@ int main(int argc, char *argv[]) {
     char* path_entrada = argv[1];
     char* path_saida = argv[2];
 
-    FILE* f_entrada = fopen(path_entrada, "r+");
-
+    // Abre o arquivo de entrada para leitura
+    FILE* f_entrada = fopen(path_entrada, "r");
     if (f_entrada == NULL) {
         printf("Erro ao abrir o arquivo de entrada: %s.\n", path_entrada);
         return 1;
     }
 
-    char linha[FILE_LINE_BUFFER_SIZE];
+    // Abre o arquivo de saída para escrita
+    FILE* f_saida = fopen(path_saida, "w");
+    if (f_saida == NULL) {
+        printf("Erro ao abrir o arquivo de saida: %s.\n", path_saida);
+        fclose(f_entrada);
+        return 1;
+    }
 
-    /*
-    FASE: <nome da fase>
-    CAPACIDADE: <capacidade da mochila em kg>
-    REGRA: <identificador da regra especial>
-    ITEM: <nome do item>, <peso em kg>, <valor em R$>, <tipo do item>
-    ITEM: ...
-    */
-    char *nome_fase;
-    char *regra;
-    float capacidade;
+    char linha[FILE_LINE_BUFFER_SIZE];
+    char temp[FILE_LINE_BUFFER_SIZE];
+
+    char *nome_fase = NULL;
+    char *regra = NULL;
+    float capacidade = 0.0f;
 
     Item *itens = NULL;
     int qtde_itens_fase = 0;
+    int capacidade_itens = 0; // Capacidade alocada atual do array de itens
 
+    // Lê o arquivo linha a linha
     while (fgets(linha, FILE_LINE_BUFFER_SIZE, f_entrada)) {
-        if (strncmp(linha, "FASE:", 5) == 0) {
+        // Remove \r\n do final para compatibilidade com arquivos Windows
+        int len = strlen(linha);
+        while (len > 0 && (linha[len-1] == '\n' || linha[len-1] == '\r'))
+            linha[--len] = '\0';
 
-            // Resolve a fase anterior antes de sobrescrever os dados
-            if (itens != NULL) {
-                // Fase fase = {nome_fase, regra, capacidade, qtde_itens_fase, itens};
-                // resolver_fase(&fase);
-                resolver_fase(nome_fase, regra, capacidade, qtde_itens_fase, itens);
+        if (strncmp(linha, "FASE:", 5) == 0) {
+            // Ao encontrar uma nova fase, resolve a fase anterior se houver
+            if (nome_fase != NULL) {
+                resolver_fase(nome_fase, regra, capacidade, qtde_itens_fase, itens, f_saida);
                 free(itens);
                 itens = NULL;
+                qtde_itens_fase = 0;
+                capacidade_itens = 0;
             }
 
-            qtde_itens_fase = 0;
-            sscanf(linha, "FASE: %ms", &nome_fase); // %ms aloca a string automaticamente
+            // Lê o nome da nova fase
+            sscanf(linha, "FASE: %[^\r\n]", temp);
+            if (nome_fase != NULL) free(nome_fase);
+            nome_fase = strdup(temp);
 
-            qtde_itens_fase = contar_itens_fase(f_entrada);
-
-            itens = malloc(qtde_itens_fase * sizeof(Item));
-            if (itens == NULL) {
-                fprintf(stderr, "Erro de alocação de memória.\n");
-                return 1;
-            }
-        } else if (strncmp(linha, "CAPACIDADE: ", strlen("CAPACIDADE: ")) == 0) {
+        } else if (strncmp(linha, "CAPACIDADE:", 11) == 0) {
+            // Lê a capacidade da mochila
             sscanf(linha, "CAPACIDADE: %f", &capacidade);
 
-        } else if (strncmp(linha, "REGRA: ", strlen("REGRA: ")) == 0) {
-            sscanf(linha, "REGRA: %ms", &regra);
+        } else if (strncmp(linha, "REGRA:", 6) == 0) {
+            // Lê o identificador da regra especial da fase
+            sscanf(linha, "REGRA: %[^\r\n]", temp);
+            if (regra != NULL) free(regra);
+            regra = strdup(temp);
 
-        } else if (strncmp(linha, "ITEM: ", strlen("ITEM: ")) == 0) {
-            sscanf(linha, "ITEM: %[^,], %f, %f, %[^\n]",
-                itens[qtde_itens_fase].nome, &itens[qtde_itens_fase].pesoKg, &itens[qtde_itens_fase].valor, itens[qtde_itens_fase].categoria);
+        } else if (strncmp(linha, "ITEM:", 5) == 0) {
+            // Cresce o array de itens dinamicamente conforme necessário
+            if (qtde_itens_fase >= capacidade_itens) {
+                capacidade_itens += 10;
+                itens = realloc(itens, capacidade_itens * sizeof(Item));
+            }
 
+            // Lê os dados do item: nome, peso, valor e categoria
+            char nome_temp[FILE_LINE_BUFFER_SIZE];
+            char cat_temp[FILE_LINE_BUFFER_SIZE];
+            sscanf(linha, "ITEM: %[^,], %f, %f, %[^\r\n]",
+                nome_temp, &itens[qtde_itens_fase].pesoKg,
+                &itens[qtde_itens_fase].valor, cat_temp);
+            itens[qtde_itens_fase].nome = strdup(nome_temp);
+            itens[qtde_itens_fase].categoria = strdup(cat_temp);
             qtde_itens_fase++;
-        }
-
-        // Não esquecer de resolver a última fase após o loop
-        if (itens != NULL) {
-            // Fase fase = {nome_fase, regra, capacidade, qtde_itens_fase, itens};
-            resolver_fase(nome_fase, regra, capacidade, qtde_itens_fase, itens);
-            free(itens);
         }
     }
 
+    // Resolve a última fase após o fim do arquivo
+    if (nome_fase != NULL) {
+        resolver_fase(nome_fase, regra, capacidade, qtde_itens_fase, itens, f_saida);
+        free(itens);
+    }
+
     fclose(f_entrada);
+    fclose(f_saida);
     return 0;
 }
-
-/*
-TODO`s:
- - Braba cabulosa: em como o vetor é ordenado em cada fase, é importante avaliar se o uso de índices
-                   (vetor de bool ou vetor de indices) não pode causar bugs mais pra frente.
-
- - Implementar leitura do arquivo e parser para structs do tipo Item.\
- - Basicamente, implementar a função main inteira.
-*/
